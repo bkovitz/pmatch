@@ -93,7 +93,7 @@
                            [true tarr patr sk]]))))
           fk))))
 
-(defn partition-lines
+(defn- partition-lines
  ([lines]
   (partition-lines [] lines))
  ([line-maps lines]
@@ -113,7 +113,50 @@
         (recur (conj line-maps {:pattern e1 :result e2})
                (drop 2 lines))))))
 
-(defmacro pmatch [e & clauses]
+(defmacro pmatch
+  "Each clause consists of a pattern, an optional guard, and a result
+  expression. pmatch successively e on each clause and returns the result
+  expression from the first clause that matches.
+
+  A pattern is an s-expr. An element of the form ~a matches the next item.
+  An element of the form ~@a matches the rest of the current list or vector.
+  Inside the result expression, the name 'a' will be bound to the matching
+  part of e.
+
+  A guard has the form (guard condition ...). If any condition evaluates to
+  logical false, the clause fails and pmatch proceeds to the next clause.
+  Inside each condition, names from the pattern are bound as in the result
+  expression.
+
+  For example, this expression:
+
+    (pmatch x 
+      (literal1 ~a ~b ~@more)
+        [a b more]
+      (~f 25) (guard (not= f 'xyz))
+        (str f \" is passed 25\")
+      (xyz ~n)
+        (str \"Last clause: xyz is passed \" n))
+
+  returns the following according to the value of x:
+
+    x: '(literal1 100 200 300 400 500)
+    result: [100 200 (300 400 500)]
+
+    x: '(fname 25)
+    result: \"fname is passed 25\"
+
+    x: '(xyz 25)
+    result: \"Last clause: xyz is passed 25\"
+
+  Consider also:
+
+    (pmatch x
+      ~any
+        (str \"This clause matches anything. \" any \newline
+             \"This is often useful as the last clause, because it is a run-time
+             error for none of the clauses to match.\"))"
+  [e & clauses]
   (let [target (gensym "target")
         clauses (partition-lines clauses)
         matchers
@@ -128,9 +171,31 @@
            ~(count clauses) (throw (IllegalArgumentException. (str
                               "pmatch failed to match " ~target))))))))
 
-(defmacro pmatch-recur [& args] `(recur 0 ~@args))
+(defmacro pmatch-recur
+  "Recursively calls the enclosing pmatch-loop (q.v.)."
+  [& args] `(recur 0 ~@args))
 
-(defmacro pmatch-loop [bindings & clauses]
+(defmacro pmatch-loop
+  "Same as pmatch but allows recursion analogous to 'loop', without the
+  requirement that recursive calls be tail-recursive. 'bindings' is a vector
+  the same as with 'loop'. Each iteration of the loop pmatches on the value of
+  the first variable defined in the bindings. Inside the pmatch-loop,
+  pmatch-recur calls the loop recursively, providing new values for each of
+  the variables defined in the bindings.
+
+  pmatch-loop is useful for parsing a sequence of items in a list.
+
+  For example, this expression:
+
+    (pmatch-loop [input '((tag1 1 2 3) (tag2 20 30) (tag1 10))
+                  totals {}]
+      ()
+        totals
+      ((~tag ~@numbers) ~@more)
+        (pmatch-recur more (update totals tag (fnil #(apply + % numbers) 0))))
+
+  returns {tag1 16, tag2 50}."
+  [bindings & clauses]
   (when (not (vector? bindings))
         (throw (IllegalArgumentException.
           "The first argument to pmatch-loop must be a vector of bindings.")))

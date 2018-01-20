@@ -7,7 +7,7 @@ A Clojure port of pmatch from Oleg Kiselyov's original in Scheme
 Add this dependency to your Leiningen `project.clj`:
   `[farg/pmatch "0.1.0-SNAPSHOT"]`
 
-`(require '[farg.pmatch :refer [pmatch]])`
+`(require '[farg.pmatch :refer [pmatch pmatch-loop pmatch-recur]])`
 
 ## License
 

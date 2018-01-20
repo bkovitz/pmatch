@@ -104,3 +104,28 @@
     (is (= [:pair 'x 'y] (f ['x 'y])))
     (is (= [:r '(:rest1 :rest2)] (f '(:rest1 :rest2))))
     (is (= [:fr :f '(:rest)] (f '(:f :rest))))))
+
+(defn docf [x]
+  (pmatch x 
+    (literal1 ~a ~b ~@more)
+      [a b more]
+    (~f 25) (guard (not= f 'xyz))
+      (str f " is passed 25")
+    (xyz ~n)
+      (str "Last clause: xyz is passed " n)))
+
+(deftest test-docstrings
+  (is (= (docf '(literal1 100 200 300 400 500))
+         '[100 200 (300 400 500)]))
+  (is (= (docf '(fname 25))
+         "fname is passed 25"))
+  (is (= (docf '(xyz 25))
+         "Last clause: xyz is passed 25"))
+  (is (= (pmatch-loop [input '((tag1 1 2 3) (tag2 20 30) (tag1 10))
+                       totals {}]
+           ()
+             totals
+           ((~tag ~@numbers) ~@more)
+             (pmatch-recur more (update totals tag
+                                        (fnil #(apply + % numbers) 0))))
+         '{tag1 16, tag2 50})))
