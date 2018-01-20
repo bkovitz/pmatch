@@ -176,10 +176,9 @@
   [& args] `(recur 0 ~@args))
 
 (defmacro pmatch-loop
-  "Same as pmatch but allows recursion analogous to 'loop', without the
-  requirement that recursive calls be tail-recursive. 'bindings' is a vector
-  the same as with 'loop'. Each iteration of the loop pmatches on the value of
-  the first variable defined in the bindings. Inside the pmatch-loop,
+  "Same as pmatch but allows recursion analogous to 'loop'.  'bindings' is a
+  vector the same as with 'loop'. Each iteration of the loop pmatches on the
+  value of the first variable defined in the bindings. Inside the pmatch-loop,
   pmatch-recur calls the loop recursively, providing new values for each of
   the variables defined in the bindings.
 
